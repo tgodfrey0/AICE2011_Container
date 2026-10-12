@@ -464,7 +464,7 @@ On macOS the `./ros2_ws` folder is not a real Linux folder: it lives on macOS an
 
 What to do about it:
 
-- Keep the number of files in your workspace small — avoid committing build artefacts or large datasets into `ros2_ws`.
+- Keep the number of files in your workspace small — avoid committing large datasets into `ros2_ws`. (`build/`, `install/` and `log/` are already in `.gitignore`, so colcon's output is never committed.)
 - Use `colcon build --symlink-install`, which avoids copying Python files around.
 - If a single build is painfully slow, build inside the container on a temporary folder and copy the result back:
 

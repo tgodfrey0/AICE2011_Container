@@ -1,0 +1,41 @@
+# ---------------------------------------------------------------------------
+# ROS 2 / colcon build artefacts
+#
+# Your own code in ros2_ws/src is tracked and should be committed. Everything
+# colcon generates for you does not need to be: build/ and install/ are large,
+# are reproducible, and differ between machines.
+# ---------------------------------------------------------------------------
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Same, for any nested workspace created inside ros2_ws.
+ros2_ws/**/build/
+ros2_ws/**/install/
+ros2_ws/**/log/
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.pytest_cache/
+
+# ---------------------------------------------------------------------------
+# Editors
+# ---------------------------------------------------------------------------
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# ---------------------------------------------------------------------------
+# Operating system noise
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
