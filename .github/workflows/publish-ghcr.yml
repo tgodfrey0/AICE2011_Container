@@ -62,6 +62,12 @@ jobs:
           # repository reference to know where to push the digest.
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+          # Without this each arch pushes an OCI index wrapping the image
+          # plus an attestation manifest, and imagetools create would then
+          # produce a nested index-of-indexes instead of a flat two-entry
+          # manifest list.
+          provenance: false
+          sbom: false
           labels: |
             org.opencontainers.image.title=AICE2011 ROS 2 + Gazebo Container Lab
             org.opencontainers.image.description=ROS 2 Jazzy, Gazebo Sim (Harmonic) and TurtleBot3 on an XFCE4 desktop reachable over noVNC.
@@ -129,7 +135,9 @@ jobs:
 
           sources=()
           for digest in /tmp/digests/*; do
-            sources+=("$REGISTRY/$IMAGE_NAME@$(basename "$digest")")
+            # The artifact files are named with the sha256: prefix stripped,
+            # so it has to go back on before buildx will parse the reference.
+            sources+=("$REGISTRY/$IMAGE_NAME@sha256:$(basename "$digest")")
           done
 
           if [ "${#sources[@]}" -eq 0 ]; then
