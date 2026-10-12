@@ -57,6 +57,7 @@ Once it is running, open a URL in your browser and you get a full Linux desktop 
 | Remote access | x11vnc + noVNC, served on **port 6080** |
 | User | `student` (passwordless `sudo`) |
 | Build tools | `colcon`, `python3-colcon-common-extensions`, `git` |
+| Architectures | `linux/amd64` and `linux/arm64` — covers Intel/AMD and Apple Silicon on Linux, macOS and Windows |
 | Image size | ≈ 3.7 GB on disk |
 
 The desktop, virtual display, VNC server and noVNC proxy are all started by `supervisor`, so they come up automatically every time you run the container.
@@ -313,12 +314,21 @@ podman cp ros_lab_test:/tmp/ws_src/install ros2_ws/install
 1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) for Windows.
    During setup, keep the **Use WSL 2 instead of Hyper-V** option enabled — it is the default.
 2. Start Docker Desktop and wait until it reports *Engine running*.
-3. Open **PowerShell**, `cd` into this repository, and run:
+3. Open **PowerShell**, `cd` into this repository, and pull the prebuilt image. This works on Intel/AMD Windows exactly as it does on Linux: Docker Desktop runs Linux containers under WSL 2, so it fetches the `linux/amd64` build.
+
+```powershell
+docker pull ghcr.io/tgodfrey0/aice2011_container:latest
+docker run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws ghcr.io/tgodfrey0/aice2011_container:latest
+```
+
+   Building is still a perfectly good option if you want to change the `Containerfile` — just replace step 3 with:
 
 ```powershell
 docker build -t ros2-gazebo-lab -f Containerfile .
 docker run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws ros2-gazebo-lab
 ```
+
+   That takes roughly **5–20 minutes** on Windows and trips over a line-ending gotcha — see [Windows notes](#windows-notes). Pulling the prebuilt image avoids it entirely.
 
 4. Open **<http://127.0.0.1:6080/vnc.html?autoconnect=true>** in your browser.
 
@@ -345,9 +355,14 @@ sudo apt update && sudo apt install -y podman
 
 ```bash
 cd ~/aice2011_container
-podman build -t ros2-gazebo-lab -f Containerfile .
-podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ros2-gazebo-lab
+podman pull ghcr.io/tgodfrey0/aice2011_container:latest
+podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ghcr.io/tgodfrey0/aice2011_container:latest
 ```
+
+   Inside WSL this is an ordinary Linux userspace, so the same pull works as
+   described in [Option A](#option-a--pull-the-prebuilt-image). Substitute
+   `podman build -t ros2-gazebo-lab -f Containerfile .` for the `podman pull`
+   line if you would rather build it yourself.
 
 4. Then open the same URL from your Windows browser.
 
@@ -357,6 +372,8 @@ podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/stud
 <summary><strong>Windows notes</strong></summary>
 
 - The `:Z` label is omitted in the Windows commands above. It is only needed on SELinux-enabled Linux hosts, and it confuses the Windows path parser.
+- Docker Desktop must be left in **Linux containers** mode, which is its default. If it is switched to Windows containers, the pull fails — this image is Linux-only and there is no `windows/amd64` build. Check the mode by clicking the whale icon in the system tray.
+- **Only affects `docker build`.** Git for Windows checks text files out with CRLF line endings, which rewrites `entrypoint.sh` and makes the container die on startup with `exec /entrypoint.sh: exec format error`. Pulling the prebuilt image avoids this completely, because the script is baked into the image with Unix line endings. If you do want to build, either set `git config --global core.autocrlf input` before cloning, or run `git rm --cached -r . && git reset --hard` afterwards to re-checkout with the correct endings.
 - If the build fails with an error about the WSL 2 engine, make sure Docker Desktop is fully started and that *Settings → Resources → WSL Integration* has your distribution enabled.
 - The same `colcon build` slowdown described for macOS applies: keep your workspace small.
 
