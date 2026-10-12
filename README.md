@@ -2,7 +2,7 @@
 
 This repository gives you a complete **ROS 2 Jazzy + Gazebo Sim (Harmonic) + TurtleBot3** environment as a single container image. Everything runs inside the container, and you reach it through **a web browser** — there is no VM to import, nothing to install on your own machine beyond a container runtime, and no dual-booting.
 
-Once it is running, open a URL in your browser and you get a full Linux desktop (XFCE4) with a terminal, Gazebo and TurtleBot3 already installed and configured. Your ROS 2 workspace lives on your machine's disk, so your code is not lost when the container is thrown away.
+Once it is running, open a URL in your browser and you get a Linux desktop with a panel, an applications menu and desktop launcher icons, with ROS 2, Gazebo and TurtleBot3 already installed and configured. Your ROS 2 workspace lives on your machine's disk, so your code is not lost when the container is thrown away.
 
 ```
 ┌──────────────┐   http://127.0.0.1:6080   ┌──────────────────────────────┐
@@ -33,6 +33,7 @@ Once it is running, open a URL in your browser and you get a full Linux desktop 
   - [macOS](#macos)
 - [Using the lab](#using-the-lab)
   - [1. Open the desktop](#1-open-the-desktop)
+  - [The desktop](#the-desktop)
   - [2. Start the TurtleBot3 simulation](#2-start-the-turtlebot3-simulation)
   - [3. Drive the robot](#3-drive-the-robot)
   - [4. Build your own ROS 2 workspace](#4-build-your-own-ros-2-workspace)
@@ -55,7 +56,8 @@ Once it is running, open a URL in your browser and you get a full Linux desktop 
 | Gazebo Sim | **8.15.0** (Harmonic) via `ros-jazzy-ros-gz` and `ros-jazzy-gz-ros2-control` |
 | TurtleBot3 | `simulations`, `gazebo`, `description`, `teleop`, `bringup` |
 | Robot model | `TURTLEBOT3_MODEL=waffle_pi` (also accepts `burger` and `waffle`) |
-| Desktop | XFCE4 + Openbox, running on a virtual display (Xvfb) |
+| Desktop | XFCE4 panel + dock, with a window manager, running on a virtual display (Xvfb) |
+| Desktop launchers | New Terminal, Start TurtleBot3 Simulation, TurtleBot3 Teleop, Build ROS 2 Workspace |
 | Remote access | x11vnc + noVNC, served on **port 6080** |
 | User | `student` (passwordless `sudo`) |
 | Build tools | `colcon`, `python3-colcon-common-extensions`, `git` |
@@ -353,7 +355,7 @@ podman ps
 podman logs ros_lab_test
 ```
 
-You should see `xvfb`, `x11vnc`, `openbox` and `novnc` all reporting `entered RUNNING state`.
+You should see `xvfb`, `dbus`, `x11vnc`, `openbox`, `xfdesktop`, `novnc` and `xfce4-panel` all reporting `entered RUNNING state`.
 
 If Podman complains about user namespaces or `subuid`/`subgid`:
 
@@ -492,9 +494,39 @@ With the container running, open:
 
 > If you typed `localhost` instead of `127.0.0.1` and the page will not load, use `127.0.0.1`. On some systems `localhost` resolves to the IPv6 address `::1`, which the container's port forwarding does not handle. See [Troubleshooting](#troubleshooting).
 
+### The desktop
+
+What you are looking at:
+
+| Where | What it is |
+| --- | --- |
+| Top of screen | The **panel**. **Applications** on the left opens the menu; the middle shows which windows are open (click to switch); the right has the clock. |
+| Bottom of screen | A **dock** with a few common apps, including a terminal. |
+| Left of screen | **Desktop icons** for this lab — see below. |
+| Middle | Your windows: terminals and Gazebo. |
+
+If you close a terminal, or Gazebo crashes, **you are never stuck.** There are three ways to get a new one:
+
+1. **Double-click the `New Terminal` icon** on the desktop.
+2. **Applications → Terminal Emulator** in the panel.
+3. **The terminal icon in the dock** at the bottom.
+
+The lab launcher icons on the desktop do the fiddly part for you:
+
+| Icon | What it does |
+| --- | --- |
+| **New Terminal** | Opens a terminal with ROS 2 already set up. |
+| **Start TurtleBot3 Simulation** | Launches the Gazebo world, equivalent to `ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py`. |
+| **TurtleBot3 Teleop** | Opens a terminal running `teleop_keyboard` so you can drive the robot. |
+| **Build ROS 2 Workspace** | Runs `colcon build --symlink-install` in `ros2_ws`, then waits for you to press Enter. |
+
+The same four are in **Applications → Accessories** if you would rather not use the desktop icons.
+
+> **These icons only appear on a freshly created container.** They live in the container's home directory, not in your `ros2_ws`, so they come back if you `podman rm` the container and start a new one.
+
 ### 2. Start the TurtleBot3 simulation
 
-In the terminal inside the desktop:
+Either double-click **Start TurtleBot3 Simulation** on the desktop, or type this in the terminal:
 
 ```bash
 ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
@@ -693,14 +725,19 @@ If `ros_lab_test` is missing, start it again with the run command above.
 podman logs ros_lab_test
 ```
 
-A healthy start looks like this — four `entered RUNNING state` lines:
+A healthy start looks like this — seven `entered RUNNING state` lines:
 
 ```
 success: xvfb entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+success: dbus entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
 success: x11vnc entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
 success: openbox entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+success: xfdesktop entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
 success: novnc entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+success: xfce4-panel entered RUNNING state, process has stayed up for > than 3 seconds (startsecs)
 ```
+
+`dbus`, `xfdesktop` and `xfce4-panel` are the desktop session — see [The desktop](#the-desktop). If `xfce4-panel` is missing from the list, you will still get a usable desktop but with no panel, so there is no applications menu.
 
 **3. Is something else using port 6080?**
 

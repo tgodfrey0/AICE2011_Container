@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gedit \
     x11-xserver-utils \
     python3-colcon-common-extensions \
+    libglib2.0-bin \
     && rm -rf /var/lib/apt/lists/*
 
 # Install modern Gazebo Sim (Harmonic) and ROS 2 Jazzy integration packages
@@ -74,5 +75,61 @@ RUN mkdir -p /home/student/.config/openbox \
     && echo 'xset r on &' >> /home/student/.config/openbox/autostart \
     && echo 'xset r rate 250 30 &' >> /home/student/.config/openbox/autostart \
     && chown -R student:student /home/student/.config
+
+# Desktop and menu launchers. Wrapping each ROS command in a script keeps the
+# .desktop Exec lines simple: Exec= has its own quoting rules that make inline
+# "source ...; ros2 ..." strings fragile.
+RUN mkdir -p /home/student/bin /home/student/Desktop /home/student/.local/share/applications
+
+# New terminal -- the important one: lets a student get a shell back after
+# closing every terminal window.
+RUN printf '%s\n' \
+      '#!/bin/bash' \
+      'exec xfce4-terminal' \
+      > /home/student/bin/new-terminal
+
+# Start the TurtleBot3 simulation.
+RUN printf '%s\n' \
+      '#!/bin/bash' \
+      'source /opt/ros/jazzy/setup.bash' \
+      '[ -f /home/student/ros2_ws/install/setup.bash ] && source /home/student/ros2_ws/install/setup.bash' \
+      'exec ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py' \
+      > /home/student/bin/start-simulation
+
+# Drive the robot. Teleop needs the keyboard, so it has to be a real terminal.
+RUN printf '%s\n' \
+      '#!/bin/bash' \
+      'source /opt/ros/jazzy/setup.bash' \
+      '[ -f /home/student/ros2_ws/install/setup.bash ] && source /home/student/ros2_ws/install/setup.bash' \
+      'exec ros2 run turtlebot3_teleop teleop_keyboard' \
+      > /home/student/bin/start-teleop
+
+# Build the workspace, so nobody has to remember the path or the flags.
+RUN printf '%s\n' \
+      '#!/bin/bash' \
+      'source /opt/ros/jazzy/setup.bash' \
+      '[ -f /home/student/ros2_ws/install/setup.bash ] && source /home/student/ros2_ws/install/setup.bash' \
+      'cd /home/student/ros2_ws || exit 1' \
+      'colcon build --symlink-install' \
+      'echo' \
+      'echo "Build finished. Press Enter to close this window."' \
+      'read -r' \
+      > /home/student/bin/build-workspace
+
+# One .desktop definition per launcher, written to both the Applications menu
+# and the desktop. The menu copy needs no special permissions; the desktop copy
+# does, because xfdesktop refuses to run a launcher until it is marked trusted.
+# Written with plain printf rather than a loop so it stays POSIX sh compatible.
+RUN printf '[Desktop Entry]\nType=Application\nVersion=1.0\nName=New Terminal\nComment=Open a new terminal window\nExec=/home/student/bin/new-terminal\nIcon=utilities-terminal\nTerminal=false\nCategories=System;TerminalEmulator;\nStartupNotify=true\n' > /home/student/.local/share/applications/new-terminal.desktop \
+ && printf '[Desktop Entry]\nType=Application\nVersion=1.0\nName=Start TurtleBot3 Simulation\nComment=Launch the TurtleBot3 world in Gazebo\nExec=/home/student/bin/start-simulation\nIcon=applications-games\nTerminal=false\nCategories=Utility;\nStartupNotify=true\n' > /home/student/.local/share/applications/start-simulation.desktop \
+ && printf '[Desktop Entry]\nType=Application\nVersion=1.0\nName=TurtleBot3 Teleop\nComment=Drive the robot with the keyboard\nExec=/home/student/bin/start-teleop\nIcon=input-keyboard\nTerminal=false\nCategories=Utility;\nStartupNotify=true\n' > /home/student/.local/share/applications/start-teleop.desktop \
+ && printf '[Desktop Entry]\nType=Application\nVersion=1.0\nName=Build ROS 2 Workspace\nComment=Run colcon build in ros2_ws\nExec=/home/student/bin/build-workspace\nIcon=system-run\nTerminal=false\nCategories=Utility;\nStartupNotify=true\n' > /home/student/.local/share/applications/build-workspace.desktop \
+ && cp /home/student/.local/share/applications/*.desktop /home/student/Desktop/
+
+# The executable bit is what makes xfdesktop treat a desktop launcher as
+# trusted; gio's metadata::trusted attribute is not supported on this image's
+# filesystem and is not needed.
+RUN chmod +x /home/student/bin/* /home/student/Desktop/*.desktop \
+    && update-desktop-database /home/student/.local/share/applications
 
 ENTRYPOINT ["/entrypoint.sh"]
