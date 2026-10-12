@@ -22,13 +22,15 @@ Once it is running, open a URL in your browser and you get a full Linux desktop 
 
 - [What's in the container](#whats-in-the-container)
 - [Requirements](#requirements)
-- [Quick start (Linux + Podman)](#quick-start-linux--podman)
-  - [Option A — pull the prebuilt image](#option-a--pull-the-prebuilt-image)
-  - [Option B — build it yourself](#option-b--build-it-yourself)
+- [Before you start: a 60-second checklist](#before-you-start-a-60-second-checklist)
+- [Quick start (one command)](#quick-start-one-command)
+  - [Option A — docker compose (easiest)](#option-a--docker-compose-easiest)
+  - [Option B — pull the prebuilt image](#option-b--pull-the-prebuilt-image)
+  - [Option C — build it yourself](#option-c--build-it-yourself)
 - [Setting up on your machine](#setting-up-on-your-machine)
+  - [Windows](#windows)
   - [Linux](#linux)
   - [macOS](#macos)
-  - [Windows](#windows)
 - [Using the lab](#using-the-lab)
   - [1. Open the desktop](#1-open-the-desktop)
   - [2. Start the TurtleBot3 simulation](#2-start-the-turtlebot3-simulation)
@@ -73,19 +75,103 @@ The desktop, virtual display, VNC server and noVNC proxy are all started by `sup
 | Disk | 15 GB free | 25 GB+ |
 | Browser | Any modern Chrome, Edge, Firefox or Safari | — |
 
-The first build takes roughly **5–20 minutes** depending on your machine and internet speed, and produces a 3.7 GB image. Every build after that reuses the cache and finishes in seconds unless you change the `Containerfile`.
+A ready-made image is published on GitHub Container Registry, so the normal route is to `podman pull` or `docker pull` it and start it in about a minute — no GitHub account or login required. Downloading it needs roughly **5 GB** of free disk space.
+
+If you would rather build the image from this repository, the first build takes roughly **5–20 minutes** depending on your machine and internet speed and produces a 3.7 GB image. Every build after that reuses the cache and finishes in seconds unless you change the `Containerfile`.
 
 > **macOS and Windows run the image inside a small virtual machine.** Give that virtual machine at least 8 GB of RAM (see the platform sections below) or Gazebo will crawl.
 
 ---
 
-## Quick start (Linux + Podman)
+## Before you start: a 60-second checklist
 
-If you are on Linux with Podman installed, this is the whole thing:
+Do these three things first. They cover almost every problem people hit, and each one fails with a confusing message if you skip it.
 
-### Option A — pull the prebuilt image
+### 1. Get the code, and check you are in the right folder
 
-A ready-to-run image is published on GitHub Container Registry for both **Intel/AMD (`linux/amd64`)** and **Apple Silicon (`linux/arm64`)** machines. This takes about a minute:
+Clone the repository (or download it and unzip it). **All the commands in this README are relative to the folder you unzipped**, so `cd` into it before you do anything else:
+
+```bash
+cd ~/aice2011_container        # <- whatever you actually called it
+```
+
+You should see these files:
+
+```bash
+ls
+#   Containerfile  entrypoint.sh  README.md  ros2_ws  supervisord.conf
+```
+
+If `ros2_ws` is missing from that list, go to step 2.
+
+### 2. Make sure the `ros2_ws` folder exists
+
+Your work is saved in `ros2_ws`, and the start commands mount it into the container. The folder ships with the repository, but it is **empty**, so:
+
+- **Windows Explorer's default view hides empty folders.** Use *View → Show → Hidden items*, or just run the command below.
+- **Some unzip tools skip empty folders.** Check with `ls ros2_ws` rather than trusting the file browser.
+- If you deleted it by accident, recreate it:
+
+```bash
+mkdir -p ros2_ws/src
+```
+
+That must succeed **before** you start the container.
+
+> **Using [Option A](#option-a--docker-compose-easiest)? You can skip this step.** `docker compose up -d` creates `ros2_ws` for you if it is missing, and fixes its ownership so the `student` user inside the container can write to it.
+
+### 3. Check you have room and memory
+
+```bash
+df -h .          # need ~5 GB free for the image, 15 GB to be comfortable
+free -h          # need 8 GB free RAM (16 GB+ recommended for Gazebo)
+```
+
+`free` is Linux-only. On macOS use `vm_stat`, and on Windows check **Settings → System → About → Installed RAM**. Remember that macOS and Windows also need the virtual machine to be given enough memory — see [the platform sections](#setting-up-on-your-machine).
+
+### Why this matters: the error message does not help
+
+If you skip step 2, or run the command from the wrong folder, **the error is identical and unhelpful** either way:
+
+```
+Error: lstat ros2_ws: no such file or directory
+```
+
+It means *"create `ros2_ws`, or `cd` somewhere that has it"* — it does **not** name which mistake you made. If you see that, check both. Docker Desktop on macOS and Windows is even less obvious: it quietly creates a root-owned empty `ros2_ws` for you, and then the `student` user inside the container cannot write to it, so `colcon build` fails later with `Permission denied`. [That symptom has its own section below](#permission-denied-on-the-workspace).
+
+---
+
+## Quick start (one command)
+
+All three options below get you to the same place: a running container and a desktop in your browser. Pick whichever suits you.
+
+### Option A — docker compose (easiest)
+
+This repository ships a `compose.yaml`, so the whole lab is one command. **It creates the `ros2_ws` folder for you if it is missing**, which is the single most common thing to get wrong by hand.
+
+```bash
+docker compose up -d
+```
+
+Then open **<http://127.0.0.1:6080/vnc.html?autoconnect=true>** in your browser. That is it — no image name, no volume paths, no `mkdir`.
+
+Stop it again with `docker compose down`. Your work stays in `./ros2_ws`.
+
+| I want to… | Command |
+| --- | --- |
+| Start | `docker compose up -d` |
+| See the logs | `docker compose logs -f` |
+| Stop (keep work) | `docker compose stop` |
+| Stop and remove | `docker compose down` |
+| Update to the newest image | `docker compose pull && docker compose up -d` |
+
+> `docker compose` needs **Docker Desktop**, or the `docker-compose` plugin on Linux. With **Podman**, `podman compose` also works *provided* a Compose provider is installed — on many distributions that is a separate package (`podman-compose` on Fedora/Debian/Ubuntu, `docker-compose` otherwise). Without one, Podman prints `compose provider failed ... executable file not found`; install the provider, or just use [Option B](#option-b--pull-the-prebuilt-image) and run `podman run` yourself.
+>
+> Nothing in this file builds the image — it pulls the prebuilt one from GitHub Container Registry, so it works natively on Intel/AMD and Apple Silicon, and needs no GitHub account.
+
+### Option B — pull the prebuilt image
+
+The same thing by hand, if you would rather not use Compose. A ready-to-run image is published on GitHub Container Registry for both **Intel/AMD (`linux/amd64`)** and **Apple Silicon (`linux/arm64`)** machines. This takes about a minute:
 
 ```bash
 # 1. Pull the image (no account or login needed)
@@ -108,7 +194,7 @@ podman pull ghcr.io/tgodfrey0/aice2011_container:sha-1234567   # replace with th
 
 > The `:latest` tag is rebuilt automatically whenever the `Containerfile` changes on `main`, so it always reflects the current `main` branch.
 
-### Option B — build it yourself
+### Option C — build it yourself
 
 Choose this if you want to modify the `Containerfile`, pin package versions, or you would rather not download a 3.7 GB prebuilt image. The first build takes roughly **5–20 minutes**; later builds reuse the cache and finish in seconds.
 
@@ -123,7 +209,7 @@ podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/stud
 #    http://127.0.0.1:6080/vnc.html?autoconnect=true
 ```
 
-The `127.0.0.1` in `-p 127.0.0.1:6080:6080` means "only accept connections from this computer". See [Why bind to 127.0.0.1?](#why-bind-to-12701) — please keep it, the VNC server has no password.
+The `127.0.0.1` in `-p 127.0.0.1:6080:6080` means "only accept connections from this computer". See [Why bind to 127.0.0.1?](#why-bind-to-127001) — please keep it, the VNC server has no password.
 
 > **Prefer Docker?** Every `podman` command below works identically as `docker`. The only differences are called out in each platform section.
 
@@ -132,179 +218,6 @@ The `127.0.0.1` in `-p 127.0.0.1:6080:6080` means "only accept connections from 
 ## Setting up on your machine
 
 You only need **one** of the options below. Pick the one that matches your machine and your lab partner's instructions.
-
-### Linux
-
-<details open>
-<summary><strong>Ubuntu / Debian / Fedora — Podman (recommended)</strong></summary>
-
-Install Podman:
-
-```bash
-# Fedora
-sudo dnf install podman
-
-# Ubuntu / Debian
-sudo apt update && sudo apt install -y podman
-```
-
-Podman runs **rootless** by default, so there is no `sudo` needed for any of the commands below.
-
-Build and start:
-
-```bash
-podman build -t ros2-gazebo-lab -f Containerfile .
-podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ros2-gazebo-lab
-```
-
-Then open **<http://127.0.0.1:6080/vnc.html?autoconnect=true>**.
-
-The `:Z` at the end of the mount is important on SELinux-enabled distributions (Fedora, RHEL, Rocky, CentOS). It tells the container to relabel the folder so the `student` user inside the container is allowed to write to it. On distributions without SELinux it is harmless and you can leave it as it is.
-
-</details>
-
-<details>
-<summary><strong>Linux — Docker</strong></summary>
-
-```bash
-sudo apt install docker.io          # Ubuntu / Debian
-sudo dnf install docker             # Fedora
-sudo usermod -aG docker $USER       # log out and back in afterwards
-```
-
-```bash
-docker build -t ros2-gazebo-lab -f Containerfile .
-docker run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ros2-gazebo-lab
-```
-
-</details>
-
-<details>
-<summary><strong>Checking your setup / fixing Podman</strong></summary>
-
-```bash
-# What is running?
-podman ps
-
-# Did the desktop start correctly?
-podman logs ros_lab_test
-```
-
-You should see `xvfb`, `x11vnc`, `openbox` and `novnc` all reporting `entered RUNNING state`.
-
-If Podman complains about user namespaces or `subuid`/`subgid`:
-
-```bash
-podman system migrate
-```
-
-And if you get `cannot clone: Operation not permitted` after installing Podman on a fresh machine, log out and back in (or reboot) so your new group memberships take effect.
-
-</details>
-
-### macOS
-
-macOS cannot run Linux containers directly, so both Podman and Docker run a small Linux virtual machine for you. You only need to create and start that machine once.
-
-<details open>
-<summary><strong>macOS — Podman Desktop (recommended)</strong></summary>
-
-1. Install [Podman Desktop](https://podman-desktop.io/) (it bundles Podman itself).
-2. Open it, and use the built-in terminal (**Terminal → Podman machine init**) or your own terminal:
-
-```bash
-podman machine init --cpus 6 --memory 8192 --disk-size 40
-podman machine start
-```
-
-3. Build and start as usual:
-
-```bash
-podman build -t ros2-gazebo-lab -f Containerfile .
-podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ros2-gazebo-lab
-```
-
-4. When you are finished for the day, give the virtual machine its memory back:
-
-```bash
-podman machine stop
-```
-
-</details>
-
-<details>
-<summary><strong>macOS — Docker Desktop</strong></summary>
-
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) for Mac (Apple Silicon or Intel).
-2. Start Docker Desktop and wait for the whale icon to say it is running.
-3. Then:
-
-```bash
-docker build -t ros2-gazebo-lab -f Containerfile .
-docker run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws ros2-gazebo-lab
-```
-
-Note the missing `:Z` — that label is only meaningful on SELinux-enabled Linux hosts.
-
-</details>
-
-<details>
-<summary><strong>macOS — Colima (lighter alternative to Docker Desktop)</strong></summary>
-
-Useful if you would rather not run Docker Desktop (it is a commercial product with a licence). Colima runs the same Linux virtual machine with a much smaller footprint.
-
-```bash
-brew install docker colima
-colima start --cpu 6 --memory 8 --disk 40
-```
-
-`colima start` prints a summary when it is ready. Then use the **Docker** commands (Colima provides the Docker-compatible engine and the `docker` CLI comes from Homebrew):
-
-```bash
-docker build -t ros2-gazebo-lab -f Containerfile .
-docker run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws ros2-gazebo-lab
-```
-
-```bash
-colima stop      # when you are done
-```
-
-</details>
-
-<details>
-<summary><strong>Apple Silicon (M1/M2/M3/M4) notes</strong></summary>
-
-The image builds natively for `arm64`, so no extra flags are normally needed.
-
-If a package ever fails to resolve on `arm64`, build for Intel instead and let the virtual machine translate it:
-
-```bash
-podman build --platform linux/amd64 -t ros2-gazebo-lab -f Containerfile .
-```
-
-This always works, but Gazebo will run noticeably slower because every instruction is being translated. Try the native build first.
-
-</details>
-
-<details>
-<summary><strong>macOS — why <code>colcon build</code> is slow here</strong></summary>
-
-On macOS the `./ros2_ws` folder is not a real Linux folder: it lives on macOS and is shared into the virtual machine over a network filesystem. Reading and writing each file is far more expensive than on Linux, so a `colcon build` that takes 20 seconds natively can take several minutes.
-
-What to do about it:
-
-- Keep the number of files in your workspace small — avoid committing build artefacts or large datasets into `ros2_ws`.
-- Use `colcon build --symlink-install`, which avoids copying Python files around.
-- If a single build is painfully slow, build inside the container on a temporary folder and copy the result back:
-
-```bash
-# from your host terminal, while the container is running
-podman exec -u student -w /tmp ros_lab_test bash -c 'source /opt/ros/jazzy/setup.bash && cp -r /home/student/ros2_ws/src /tmp/ws_src && cd /tmp/ws_src && colcon build'
-podman cp ros_lab_test:/tmp/ws_src/build ros2_ws/build
-podman cp ros_lab_test:/tmp/ws_src/install ros2_ws/install
-```
-
-</details>
 
 ### Windows
 
@@ -360,7 +273,7 @@ podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/stud
 ```
 
    Inside WSL this is an ordinary Linux userspace, so the same pull works as
-   described in [Option A](#option-a--pull-the-prebuilt-image). Substitute
+   described in [Option B](#option-b--pull-the-prebuilt-image). Substitute
    `podman build -t ros2-gazebo-lab -f Containerfile .` for the `podman pull`
    line if you would rather build it yourself.
 
@@ -378,6 +291,190 @@ podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/stud
 - The same `colcon build` slowdown described for macOS applies: keep your workspace small.
 
 </details>
+
+### Linux
+
+<details open>
+<summary><strong>Ubuntu / Debian / Fedora — Podman (recommended)</strong></summary>
+
+Install Podman:
+
+```bash
+# Fedora
+sudo dnf install podman
+
+# Ubuntu / Debian
+sudo apt update && sudo apt install -y podman
+```
+
+Podman runs **rootless** by default, so there is no `sudo` needed for any of the commands below.
+
+Pull the prebuilt image and start:
+
+```bash
+podman pull ghcr.io/tgodfrey0/aice2011_container:latest
+podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ghcr.io/tgodfrey0/aice2011_container:latest
+```
+
+Then open **<http://127.0.0.1:6080/vnc.html?autoconnect=true>**.
+
+The `:Z` at the end of the mount is important on SELinux-enabled distributions (Fedora, RHEL, Rocky, CentOS). It tells the container to relabel the folder so the `student` user inside the container is allowed to write to it. On distributions without SELinux it is harmless and you can leave it as it is.
+
+To build it from this repository instead, swap the `podman pull` line for `podman build -t ros2-gazebo-lab -f Containerfile .` and run `ros2-gazebo-lab` in place of the full image name. See [Option C](#option-c--build-it-yourself).
+
+</details>
+
+<details>
+<summary><strong>Linux — Docker</strong></summary>
+
+```bash
+sudo apt install docker.io          # Ubuntu / Debian
+sudo dnf install docker             # Fedora
+sudo usermod -aG docker $USER       # log out and back in afterwards
+```
+
+```bash
+docker pull ghcr.io/tgodfrey0/aice2011_container:latest
+docker run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ghcr.io/tgodfrey0/aice2011_container:latest
+```
+
+Substitute `docker build -t ros2-gazebo-lab -f Containerfile .` for the `docker pull` line if you would rather build it yourself.
+
+</details>
+
+<details>
+<summary><strong>Checking your setup / fixing Podman</strong></summary>
+
+```bash
+# What is running?
+podman ps
+
+# Did the desktop start correctly?
+podman logs ros_lab_test
+```
+
+You should see `xvfb`, `x11vnc`, `openbox` and `novnc` all reporting `entered RUNNING state`.
+
+If Podman complains about user namespaces or `subuid`/`subgid`:
+
+```bash
+podman system migrate
+```
+
+And if you get `cannot clone: Operation not permitted` after installing Podman on a fresh machine, log out and back in (or reboot) so your new group memberships take effect.
+
+</details>
+
+### macOS
+
+macOS cannot run Linux containers directly, so both Podman and Docker run a small Linux virtual machine for you. You only need to create and start that machine once.
+
+<details open>
+<summary><strong>macOS — Podman Desktop (recommended)</strong></summary>
+
+1. Install [Podman Desktop](https://podman-desktop.io/) (it bundles Podman itself).
+2. Open it, and use the built-in terminal (**Terminal → Podman machine init**) or your own terminal:
+
+```bash
+podman machine init --cpus 6 --memory 8192 --disk-size 40
+podman machine start
+```
+
+3. Pull the prebuilt image and start:
+
+```bash
+podman pull ghcr.io/tgodfrey0/aice2011_container:latest
+podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ghcr.io/tgodfrey0/aice2011_container:latest
+```
+
+   Apple Silicon pulls the `linux/arm64` build and Intel Macs pull `linux/amd64`; both are published, so no special flag is needed. Swap in `podman build -t ros2-gazebo-lab -f Containerfile .` if you want to build it yourself — see [Option C](#option-c--build-it-yourself).
+
+4. When you are finished for the day, give the virtual machine its memory back:
+
+```bash
+podman machine stop
+```
+
+</details>
+
+<details>
+<summary><strong>macOS — Docker Desktop</strong></summary>
+
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) for Mac (Apple Silicon or Intel).
+2. Start Docker Desktop and wait for the whale icon to say it is running.
+3. Then:
+
+```bash
+docker pull ghcr.io/tgodfrey0/aice2011_container:latest
+docker run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws ghcr.io/tgodfrey0/aice2011_container:latest
+```
+
+Note the missing `:Z` — that label is only meaningful on SELinux-enabled Linux hosts.
+
+Substitute `docker build -t ros2-gazebo-lab -f Containerfile .` for the `docker pull` line if you would rather build it yourself.
+
+</details>
+
+<details>
+<summary><strong>macOS — Colima (lighter alternative to Docker Desktop)</strong></summary>
+
+Useful if you would rather not run Docker Desktop (it is a commercial product with a licence). Colima runs the same Linux virtual machine with a much smaller footprint.
+
+```bash
+brew install docker colima
+colima start --cpu 6 --memory 8 --disk 40
+```
+
+`colima start` prints a summary when it is ready. Then use the **Docker** commands (Colima provides the Docker-compatible engine and the `docker` CLI comes from Homebrew):
+
+```bash
+docker pull ghcr.io/tgodfrey0/aice2011_container:latest
+docker run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws ghcr.io/tgodfrey0/aice2011_container:latest
+```
+
+```bash
+colima stop      # when you are done
+```
+
+</details>
+
+<details>
+<summary><strong>Apple Silicon (M1/M2/M3/M4) notes</strong></summary>
+
+Pulling is the best route on Apple Silicon: `podman pull` / `docker pull` fetches the prebuilt native `linux/arm64` image, so you neither build nor translate anything.
+
+If you are building anyway, the image builds natively for `arm64`, so no extra flags are normally needed.
+
+If a package ever fails to resolve on `arm64`, build for Intel instead and let the virtual machine translate it:
+
+```bash
+podman build --platform linux/amd64 -t ros2-gazebo-lab -f Containerfile .
+```
+
+This always works, but Gazebo will run noticeably slower because every instruction is being translated. Try the native build first, or simply `podman pull` the `linux/amd64` image instead of building it.
+
+</details>
+
+<details>
+<summary><strong>macOS — why <code>colcon build</code> is slow here</strong></summary>
+
+On macOS the `./ros2_ws` folder is not a real Linux folder: it lives on macOS and is shared into the virtual machine over a network filesystem. Reading and writing each file is far more expensive than on Linux, so a `colcon build` that takes 20 seconds natively can take several minutes.
+
+What to do about it:
+
+- Keep the number of files in your workspace small — avoid committing build artefacts or large datasets into `ros2_ws`.
+- Use `colcon build --symlink-install`, which avoids copying Python files around.
+- If a single build is painfully slow, build inside the container on a temporary folder and copy the result back:
+
+```bash
+# from your host terminal, while the container is running
+podman exec -u student -w /tmp ros_lab_test bash -c 'source /opt/ros/jazzy/setup.bash && cp -r /home/student/ros2_ws/src /tmp/ws_src && cd /tmp/ws_src && colcon build'
+podman cp ros_lab_test:/tmp/ws_src/build ros2_ws/build
+podman cp ros_lab_test:/tmp/ws_src/install ros2_ws/install
+```
+
+</details>
+
 
 ---
 
@@ -519,7 +616,7 @@ podman rm -f ros_lab_test             # delete the container entirely
 
 podman exec -it ros_lab_test bash     # a shell inside the container
 podman cp ros_lab_test:/home/student/ros2_ws/install ./ws-install-backup    # copy files out
-podman image inspect ros2-gazebo-lab --format '{{.Size}}'           # image size
+podman image inspect ghcr.io/tgodfrey0/aice2011_container:latest --format '{{.Size}}'   # image size
 podman system df                      # disk space used by images/containers
 ```
 
@@ -539,13 +636,15 @@ colcon build --symlink-install                              # build the workspac
 
 | I want to… | Command |
 | --- | --- |
-| Start the lab for the day | `podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ros2-gazebo-lab` |
+| Start the lab for the day | `podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ghcr.io/tgodfrey0/aice2011_container:latest` |
 | Stop it when I go home | `podman stop ros_lab_test` |
 | Back the next morning | `podman start ros_lab_test` |
 | Wipe it and start clean | `podman rm -f ros_lab_test` (your `ros2_ws` is **not** deleted) |
 | Free disk space | `podman container prune` then `podman image prune` |
 
-> Rebuilding the image is safe: your work is in `./ros2_ws`, which is mounted from your machine, not stored in the image.
+> If you built the image yourself in [Option C](#option-c--build-it-yourself), replace `ghcr.io/tgodfrey0/aice2011_container:latest` with `ros2-gazebo-lab` in these commands.
+>
+> Rebuilding or re-pulling the image is safe: your work is in `./ros2_ws`, which is mounted from your machine, not stored in the image.
 
 ---
 
@@ -562,6 +661,21 @@ That means:
 ---
 
 ## Troubleshooting
+
+### `Error: lstat ros2_ws: no such file or directory`
+
+The container refuses to start. This one message covers two different mistakes, so check both:
+
+1. **You are in the wrong folder.** The `ros2_ws` path is relative, so it only works from the folder you unzipped. `pwd` should show the directory containing `Containerfile`, not your home folder.
+2. **The `ros2_ws` folder does not exist.** It ships empty, so Windows Explorer hides it and some unzip tools skip it. See [step 2 of the checklist](#before-you-start-a-60-second-checklist), or just run:
+
+```bash
+pwd                  # am I in the right place?
+ls                   # does it list ros2_ws?
+mkdir -p ros2_ws/src # if it is missing, create it
+```
+
+Then run the start command again.
 
 ### The desktop will not load
 
@@ -597,7 +711,7 @@ ss -ltn | grep 6080        # Linux
 If another container or program holds the port, stop it, or start the lab on a different port and change the left-hand side in the run command:
 
 ```bash
-podman run -d --name ros_lab_test -p 127.0.0.1:6081:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ros2-gazebo-lab
+podman run -d --name ros_lab_test -p 127.0.0.1:6081:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ghcr.io/tgodfrey0/aice2011_container:latest
 ```
 
 **4. Use `127.0.0.1` instead of `localhost`.**
@@ -617,7 +731,7 @@ podman rm -f ros_lab_test
 ```
 
 ```bash
-podman run --rm --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ros2-gazebo-lab
+podman run --rm --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ghcr.io/tgodfrey0/aice2011_container:latest
 ```
 
 Adding `--rm` means the container deletes itself when you stop it, so this cannot happen again.
@@ -629,7 +743,7 @@ Symptoms: `mkdir: cannot create directory ... Permission denied` inside `/home/s
 This is almost always SELinux. Make sure your run command ends the mount with `:Z` and then start a **new** container (editing the command is not enough — the label is applied when the container is created):
 
 ```bash
-podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ros2-gazebo-lab
+podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ghcr.io/tgodfrey0/aice2011_container:latest
 ```
 
 If you are on Windows or macOS with Docker Desktop, drop the `:Z` — it is not used there.
@@ -663,10 +777,10 @@ podman container prune    # delete stopped containers
 podman image prune        # delete dangling (unused) images
 ```
 
-Deleting the image itself and rebuilding takes another 5–20 minutes but recovers ~3.7 GB:
+Deleting the image itself and fetching it again takes about a minute (or 5–20 minutes if you rebuild from source instead) and recovers ~3.7 GB:
 
 ```bash
-podman rmi ros2-gazebo-lab
+podman rmi ghcr.io/tgodfrey0/aice2011_container:latest
 ```
 
 ### Nothing sees anything
