@@ -23,6 +23,8 @@ Once it is running, open a URL in your browser and you get a full Linux desktop 
 - [What's in the container](#whats-in-the-container)
 - [Requirements](#requirements)
 - [Quick start (Linux + Podman)](#quick-start-linux--podman)
+  - [Option A — pull the prebuilt image](#option-a--pull-the-prebuilt-image)
+  - [Option B — build it yourself](#option-b--build-it-yourself)
 - [Setting up on your machine](#setting-up-on-your-machine)
   - [Linux](#linux)
   - [macOS](#macos)
@@ -79,6 +81,35 @@ The first build takes roughly **5–20 minutes** depending on your machine and i
 ## Quick start (Linux + Podman)
 
 If you are on Linux with Podman installed, this is the whole thing:
+
+### Option A — pull the prebuilt image
+
+A ready-to-run image is published on GitHub Container Registry for both **Intel/AMD (`linux/amd64`)** and **Apple Silicon (`linux/arm64`)** machines. This takes about a minute:
+
+```bash
+# 1. Pull the image (no account or login needed)
+podman pull ghcr.io/tgodfrey0/aice2011_container:latest
+
+# 2. Start the lab
+podman run -d --name ros_lab_test -p 127.0.0.1:6080:6080 -v ./ros2_ws:/home/student/ros2_ws:Z ghcr.io/tgodfrey0/aice2011_container:latest
+
+# 3. Open the desktop
+#    http://127.0.0.1:6080/vnc.html?autoconnect=true
+```
+
+Everything under `podman machine` / Docker Desktop applies unchanged — see [Setting up on your machine](#setting-up-on-your-machine) if you need to install Podman or start a virtual machine first.
+
+Every push is also tagged with the commit it was built from, so you can pin an exact version:
+
+```bash
+podman pull ghcr.io/tgodfrey0/aice2011_container:sha-1234567   # replace with the commit you want
+```
+
+> The `:latest` tag is rebuilt automatically whenever the `Containerfile` changes on `main`, so it always reflects the current `main` branch.
+
+### Option B — build it yourself
+
+Choose this if you want to modify the `Containerfile`, pin package versions, or you would rather not download a 3.7 GB prebuilt image. The first build takes roughly **5–20 minutes**; later builds reuse the cache and finish in seconds.
 
 ```bash
 # 1. Build the image (only needed once)
