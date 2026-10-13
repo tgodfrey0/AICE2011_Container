@@ -1,7 +1,12 @@
 #!/bin/bash
 set -e
 
-# Clear stale lock files
+# X clients reach the display through a unix socket in /tmp/.X11-unix. That
+# directory normally exists on a desktop but not in a bare container, and the
+# X server runs as the unprivileged student user here, which cannot create it.
+sudo install -d -m 1777 /tmp/.X11-unix
+
+# Clear stale lock files left behind by an unclean shutdown
 sudo rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
 
 # The ./ros2_ws bind mount hides the src/ directory baked into the image,

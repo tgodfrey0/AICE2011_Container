@@ -181,12 +181,46 @@
    Harmless. It appears while the robot is settling onto the ground.
 
 --------------------------------------------------------------------------------
- QUICK REFERENCE
+ IF COPY AND PASTE IS NOT WORKING
 --------------------------------------------------------------------------------
+
+ TO PUT TEXT INTO THIS CONTAINER YOU MUST USE THE CLIPBOARD PANEL.
+
+ Browsers do not let a web page take your clipboard without asking, so there is
+ no shortcut. Every browser-based remote desktop has this same limit.
+
+   1. Click the clipboard icon in the toolbar at the top right of the page.
+   2. Click into the box that opens, and press Ctrl+V.
+   3. Click away from the box.
+
+ Step 3 is the one people miss. The text is only sent to the container once you
+ click somewhere else, so a box you have not clicked out of has sent nothing.
+
+ TO GET TEXT OUT OF THIS CONTAINER
+
+   Copy something here with Ctrl+C. It appears in that same box by itself.
+   Select it in the box and press Ctrl+C to put it on your own computer.
+
+ Checking which half is broken -- run this here:
+
+      xclip -selection clipboard -o
+
+   Text appears      Text got in, so the problem is elsewhere.
+   Nothing appears   Nothing got in. Redo the three steps above, then run it
+                     again.
+
+ To put something in the clipboard by hand, while diagnosing:
+
+      printf "hello" | xclip -selection clipboard
+
+ As a convenience, pressing Ctrl+V over the desktop also sends what you pasted
+ to this container's clipboard, so you can paste it somewhere else afterwards.
+
+------------------------------------------------------------------------------
 
      ros2 launch /home/student/lab/launch/tb3_launch.py world:=base_world
      ros2 launch /home/student/lab/launch/tb3_launch.py world:=house_world
-     ros2 run ros_gz_sim create -topic turtlebot3_waffle_pi -x 0 -y 0 -z 0.1
+     ros2 run ros_gz_sim create -file /opt/ros/jazzy/share/turtlebot3_gazebo/models/turtlebot3_waffle_pi/model.sdf -x 0 -y 0 -z 0.1
      ros2 run turtlebot3_teleop teleop_keyboard
      ros2 topic list
      ros2 topic echo /scan --once

@@ -20,13 +20,20 @@ ENV LIBGL_ALWAYS_SOFTWARE=1
 ENV MESA_GL_VERSION_OVERRIDE=3.3
 
 # Install lightweight XFCE4 desktop, noVNC stack, supervisor, and utilities
+#
+# TigerVNC rather than Xvfb + x11vnc. Xvnc is both the X server and the VNC
+# server in one process, and it supports the Extended Clipboard pseudo-encoding
+# (added in TigerVNC 1.10). That matters because Ubuntu 24.04 ships
+# libvncserver 0.9.14, which cannot parse the UTF-8 cut-text messages that
+# encoding requires -- so with x11vnc, clipboard text simply never makes it
+# across the wire. See x11vnc issue #260 and libvncserver PR #639.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     xfce4 \
     openbox \
     xfce4-terminal \
     dbus-x11 \
-    x11vnc \
-    xvfb \
+    tigervnc-standalone-server \
+    tigervnc-tools \
     novnc \
     websockify \
     supervisor \
@@ -104,17 +111,19 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Patch the noVNC page. Two edits, both of which have to be plain blocking
-# scripts placed ahead of the module scripts: in 1.7.0 those are deferred, so
-# anything injected after them runs too late.
+# scripts placed ahead of noVNC's own module scripts:
 #
 #   1. Seed the "resize" setting so the canvas scales to fit the browser
 #      window, rather than sitting at 1920x1080 in a smaller one.
 #   2. Load the clipboard sync script.
 #
+# lab_clipboard.js must be a module itself, because that is how it reaches
+# noVNC's UI object -- see the comment at the top of that file.
+#
 # Must run as root: /usr/share/novnc is root-owned.
 COPY lab/novnc/lab_clipboard.js /usr/share/novnc/lab_clipboard.js
-RUN sed -i 's#<script type="module" crossorigin="anonymous" src="app/error-handler.js"></script>#<script>localStorage.setItem("resize","scale");</script>\n    <script src="lab_clipboard.js"></script>\n    <script type="module" crossorigin="anonymous" src="app/error-handler.js"></script>#' /usr/share/novnc/vnc.html \
-    && grep -q 'lab_clipboard.js' /usr/share/novnc/vnc.html \
+RUN sed -i 's#<script type="module" crossorigin="anonymous" src="app/error-handler.js"></script>#<script>localStorage.setItem("resize","scale");</script>\n    <script type="module" src="lab_clipboard.js"></script>\n    <script type="module" crossorigin="anonymous" src="app/error-handler.js"></script>#' /usr/share/novnc/vnc.html \
+    && grep -q 'type="module" src="lab_clipboard.js"' /usr/share/novnc/vnc.html \
     && grep -q 'localStorage.setItem("resize","scale")' /usr/share/novnc/vnc.html \
     && chmod 644 /usr/share/novnc/lab_clipboard.js
 

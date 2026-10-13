@@ -112,19 +112,27 @@ that folder is saved at all.
 
 ## Copy and paste
 
-Text copied on your computer can be pasted into the lab and back again.
+**To paste into the container, you must use noVNC's clipboard panel.** Browsers
+block a page from silently sharing its clipboard, so there is no shortcut — no
+other browser-based remote desktop avoids this.
 
-- **Into the container** — copy on your machine, then click the browser window
-  once to give it focus. The clipboard is pushed across; `Ctrl+V` pastes.
-- **Out of the container** — select text and `Ctrl+C` inside the lab. It lands
-  on your computer's clipboard.
+Click the **clipboard icon** in the toolbar at the top right of the lab. A box
+opens.
 
-If the clipboard is blocked — some browsers only allow this on a page you've
-interacted with, and permissions vary — noVNC has a clipboard panel of its own.
-Click the **clipboard icon** in the noVNC toolbar (top right), paste or type into
-the box, and press **Send Clipboard**.
+**Into the container:** copy the text on your computer, click into that box and
+press `Ctrl+V`, then **click away from the box**. That is the whole trick —
+the text is only sent once you click elsewhere, so a box you have not clicked
+out of has sent nothing.
 
-Either way, every command you need is also written down **inside** the lab:
+**Out of the container:** copy something inside the lab (`Ctrl+C`) and it
+appears in that box by itself. Select it there and press `Ctrl+C` to put it on
+your computer's clipboard.
+
+As a convenience, pressing `Ctrl+V` over the desktop also sends what you pasted
+to the container's clipboard, so you can paste it somewhere else later. It does
+not replace the panel: the panel is what puts text *into* the container.
+
+Every command you need is also written down **inside** the lab:
 **Applications → Command Reference**.
 
 ---
@@ -166,7 +174,7 @@ window helps a lot. 8 GB of RAM is the minimum; 16 GB is comfortable.
 | Image | `ghcr.io/tgodfrey0/aice2011_container:latest`, ≈ 3.7 GB, pulled for you |
 | Architectures | Intel/AMD and Apple Silicon |
 | Base | Ubuntu 24.04, ROS 2 Jazzy, Gazebo Sim 8 (Harmonic), TurtleBot3 |
-| Desktop | XFCE4 over noVNC, user `student`, no password |
+| Desktop | XFCE4 over noVNC and TigerVNC, user `student`, no password |
 | Your files | `ROS2_WS` from `.env`, bind-mounted to `/home/student/ros2_ws` |
 | Internet | Not needed once the image has been pulled |
 
