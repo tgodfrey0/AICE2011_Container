@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# Run a lab world in the current terminal.
+#
+#   run-world base_world
+#   run-world house_world
+#   run-world /home/student/ros2_ws/src/my_pkg/worlds/arena.world
+#
+# Stop the world with Ctrl+C.
+
+# ROS 2 is auto-sourced in a desktop terminal, but not when this is run from
+# somewhere else, so do it explicitly rather than depend on the caller.
+#
+# No `set -u`: the ROS 2 setup script reads unset variables, and dies under it.
+source /opt/ros/jazzy/setup.bash
+if [ -f /home/student/ros2_ws/install/setup.bash ]; then
+    source /home/student/ros2_ws/install/setup.bash
+fi
+
+exec ros2 launch /home/student/lab/launch/tb3_launch.py "world:=${1:-house_world}"

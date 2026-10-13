@@ -8,6 +8,7 @@ on:
       - Containerfile
       - entrypoint.sh
       - supervisord.conf
+      - lab/**
       - .github/workflows/publish-ghcr.yml
   workflow_dispatch:
 

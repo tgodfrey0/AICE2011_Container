@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=TB3 House World
+Comment=The TurtleBot3 house, with the robot in it
+Exec=/home/student/bin/menu-house-world
+Icon=applications-games
+Terminal=false
+Categories=Utility;
+StartupNotify=true

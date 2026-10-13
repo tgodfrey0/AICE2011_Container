@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Command Reference
+Comment=Every command you need, inside the container
+Exec=/home/student/bin/menu-commands
+Icon=accessories-text-editor
+Terminal=false
+Categories=Utility;Viewer;
+StartupNotify=true

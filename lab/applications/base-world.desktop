@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Base World
+Comment=Empty Gazebo world: ground plane and sun, no robot
+Exec=/home/student/bin/menu-base-world
+Icon=applications-science
+Terminal=false
+Categories=Utility;
+StartupNotify=true

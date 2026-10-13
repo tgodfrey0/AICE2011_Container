@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# Applications menu entry: New Terminal.
+#
+# The important one: it gets a shell back after every terminal window has
+# been closed.
+
+exec xfce4-terminal

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Build ROS 2 Workspace
+Comment=Run colcon build in ros2_ws
+Exec=/home/student/bin/menu-build
+Icon=system-run
+Terminal=false
+Categories=Utility;
+StartupNotify=true

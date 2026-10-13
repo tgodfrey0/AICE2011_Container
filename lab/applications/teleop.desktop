@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=TurtleBot3 Teleop
+Comment=Drive the robot with the keyboard
+Exec=/home/student/bin/menu-teleop
+Icon=input-keyboard
+Terminal=false
+Categories=Utility;
+StartupNotify=true

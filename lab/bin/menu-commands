@@ -1,0 +1,9 @@
+#!/bin/bash
+#
+# Applications menu entry: Command Reference.
+#
+# The reference lives inside the container so it is always there, including
+# when there is no clipboard to paste it in from. Read it and type what you
+# need.
+
+exec gedit /home/student/lab/COMMANDS.txt

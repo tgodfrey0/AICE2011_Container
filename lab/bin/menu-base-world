@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# Applications menu entry: Base World.
+#
+# Every launcher opens a terminal rather than running in the background. A
+# world that fails to start says so in the log, which is the only difference
+# between "the robot is not there" and "the robot is not there and here is
+# why".
+
+exec xfce4-terminal --title="AICE2011 - Base World" --hold \
+    --command="/home/student/bin/run-world base_world"

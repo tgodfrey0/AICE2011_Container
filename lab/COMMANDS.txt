@@ -1,0 +1,197 @@
+================================================================================
+ AICE2011 -- COMMAND REFERENCE
+================================================================================
+
+ Everything below is typed INSIDE this container, in a terminal on the
+ desktop. Nothing here is a Docker command -- Docker only runs on your own
+ computer, before you get to this desktop.
+
+ Read it, and type what you need. Nothing here needs copying and pasting.
+
+--------------------------------------------------------------------------------
+ STARTING A WORLD
+--------------------------------------------------------------------------------
+
+ There are two worlds. Start them from the Applications menu at the top left
+ of the screen (or with the commands below).
+
+ Base World  -- an empty world: ground plane, sun, no robot.
+                You spawn a robot into it yourself.
+
+ TB3 House World -- the TurtleBot3 house, with the robot already standing
+                in it.
+
+ From a terminal:
+
+     ros2 launch /home/student/lab/launch/tb3_launch.py world:=base_world
+     ros2 launch /home/student/lab/launch/tb3_launch.py world:=house_world
+
+ Stop a world with Ctrl+C in the terminal that started it.
+
+ Your own world, from anywhere on disk:
+
+     ros2 launch /home/student/lab/launch/tb3_launch.py \
+         world:=/home/student/ros2_ws/src/my_package/worlds/my_world.world
+
+--------------------------------------------------------------------------------
+ SPAWNING A ROBOT INTO THE BASE WORLD
+--------------------------------------------------------------------------------
+
+ The base world starts empty on purpose. Put a robot in it with:
+
+     ros2 run ros_gz_sim create -file /opt/ros/jazzy/share/turtlebot3_gazebo/models/turtlebot3_waffle_pi/model.sdf -x 0 -y 0 -z 0.1
+
+ Gazebo answers "Entity creation successful" when it has worked. If the robot
+ does not appear, the world may still have been loading -- wait a few seconds
+ and run the command again.
+
+ Waffle Pi (the default), Burger and Waffle all work:
+
+     ros2 run ros_gz_sim create -file /opt/ros/jazzy/share/turtlebot3_gazebo/models/turtlebot3_burger/model.sdf -x 2 -y 0 -z 0.1
+     ros2 run ros_gz_sim create -file /opt/ros/jazzy/share/turtlebot3_gazebo/models/turtlebot3_waffle/model.sdf -x 4 -y 0 -z 0.1
+
+ Delete one again:
+
+     gz service -s /world/default/remove --reqtype gz.msgs.Entity \
+         --reptype gz.msgs.Boolean --req 'name: "turtlebot3_waffle_pi" type: MODEL'
+
+ NOTE: `ros2 topic list` still shows /scan and /odom in the empty base world.
+ The bridge creates those ROS topics when it starts, whether or not anything
+ is publishing on them. To find out whether a robot is really there, either
+ look at the Gazebo window, or ask Gazebo:
+
+     gz topic -l | grep model/
+
+--------------------------------------------------------------------------------
+ DRIVING THE ROBOT
+--------------------------------------------------------------------------------
+
+ Keyboard teleop. Click the terminal so it has keyboard focus first.
+
+     ros2 run turtlebot3_teleop teleop_keyboard
+
+     w / x   speed up / slow down
+     a / d   turn left / right
+     s       stop immediately   (space also stops)
+
+ Ctrl+C to quit teleop.
+
+ Publishing a speed directly -- this is what most exercises want. Note the
+ TwistStamped type and the extra "twist:" level; Jazzy uses TwistStamped, not
+ the older plain Twist:
+
+     ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/TwistStamped \
+         "{twist: {linear: {x: 0.2}, angular: {z: 0.5}}}"
+
+--------------------------------------------------------------------------------
+ CHECKING THAT IT WORKS
+--------------------------------------------------------------------------------
+
+     ros2 topic list                 what exists
+     ros2 topic hz /scan             how often the LIDAR publishes
+     ros2 topic echo /scan --once    one laser scan
+     ros2 topic echo /odom --once    where the robot thinks it is
+     ros2 node list                  what is running
+
+ Topics the house world provides:
+
+     /cmd_vel            geometry_msgs/msg/TwistStamped   you -> robot
+     /odom               nav_msgs/msg/Odometry
+     /imu                sensor_msgs/msg/Imu
+     /scan               sensor_msgs/msg/LaserScan
+     /camera/image_raw   sensor_msgs/msg/Image
+     /camera/camera_info sensor_msgs/msg/CameraInfo
+     /clock              rosgraph_msgs/msg/Clock
+
+ If /scan never appears, the robot's LIDAR is not running. See
+ "IF THE SIMULATION MISBEHAVES" below.
+
+--------------------------------------------------------------------------------
+ YOUR ROS 2 WORKSPACE
+--------------------------------------------------------------------------------
+
+ Your workspace is ~/ros2_ws. It is a folder on your own computer, mounted in
+ here, so what you build survives the container being thrown away.
+
+ Create a package:
+
+     cd ~/ros2_ws
+     ros2 pkg create --build-type ament_cmake my_first_lab
+
+ Build and use it:
+
+     cd ~/ros2_ws
+     colcon build --symlink-install
+     source install/setup.bash
+
+ source install/setup.bash is only needed in terminals that were open before
+ you built. Any terminal you open afterwards picks it up automatically.
+
+ The workspace can be slow to build if it lives on a network drive. Keep it
+ small, and use --symlink-install as shown.
+
+--------------------------------------------------------------------------------
+ GAZEBO ITSELF
+--------------------------------------------------------------------------------
+
+ The Gazebo window is running on this desktop, not on your computer. Useful
+ things in it:
+
+   * Play / pause / step buttons, top right of the Gazebo window
+   * The world menu, for adding your own models by dragging them in
+   * Insert -> Entity, to add a box, sphere or cylinder
+
+ Gazebo runs without a GPU, on the CPU, so it is slower than a native install
+ and the real time factor may drop below 1.0. That is expected.
+
+ Warnings you can ignore -- Gazebo prints these every single time:
+
+     [Wrn] [LocalCache.cc:104] Server directory does not exist [/home/student/.gz/fuel/...]
+     [Wrn] [Utils.cc:132] XML Element[gz_frame_id] ... not defined in SDF
+     [Wrn] [Ogre2RenderTarget.cc:668] Anti-aliasing level ... is not supported
+     [Wrn] [Ogre2Camera.cc:423] Ogre2Camera::SetVisibilityMask ... will be ignored
+     [Wrn] [Conversions.cc:735] <gui><camera> can't be converted yet
+     [Wrn] [QT] WorldStats.qml:53:3: QML RowLayout: Binding loop detected ...
+
+--------------------------------------------------------------------------------
+ IF THE SIMULATION MISBEHAVES
+--------------------------------------------------------------------------------
+
+ Gazebo window opened but no robot in it
+   You are in the Base World, which starts empty on purpose. Spawn one --
+   see "SPAWNING A ROBOT INTO THE BASE WORLD" above.
+
+ Robot will not move, or /odom is empty
+   Check the robot is in the Gazebo window at all, then
+   `ros2 topic echo /odom --once`.
+
+ /scan never appears
+   Gazebo's LIDAR needs working software rendering. Check with:
+       glxinfo -B | grep -i renderer
+   You are looking for a renderer containing "llvmpipe". If it says
+   "swrast" or errors, run:
+       export LIBGL_ALWAYS_SOFTWARE=1
+   then start the world again.
+
+ Gazebo is very slow
+   Close the Gazebo GUI window entirely and use the base world -- the GUI is
+   most of the cost on a software renderer.
+
+ "Transform from base_link to ... failed" in the log
+   Harmless. It appears while the robot is settling onto the ground.
+
+--------------------------------------------------------------------------------
+ QUICK REFERENCE
+--------------------------------------------------------------------------------
+
+     ros2 launch /home/student/lab/launch/tb3_launch.py world:=base_world
+     ros2 launch /home/student/lab/launch/tb3_launch.py world:=house_world
+     ros2 run ros_gz_sim create -topic turtlebot3_waffle_pi -x 0 -y 0 -z 0.1
+     ros2 run turtlebot3_teleop teleop_keyboard
+     ros2 topic list
+     ros2 topic echo /scan --once
+     ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/TwistStamped "{twist: {linear: {x: 0.2}}}"
+     cd ~/ros2_ws && colcon build --symlink-install && source install/setup.bash
+     gz sim --versions
+
+================================================================================

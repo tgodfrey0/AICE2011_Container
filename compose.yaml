@@ -1,4 +1,4 @@
-# AICE2011 — ROS 2 Jazzy + Gazebo Sim (Harmonic) + TurtleBot3 lab
+# AICE2011 -- ROS 2 Jazzy + Gazebo Sim (Harmonic) + TurtleBot3 lab
 #
 # Start the lab:
 #
@@ -10,51 +10,28 @@
 #
 # Stop it again with:  docker compose down
 #
-# Works the same with Podman:  podman compose up -d
-#
-# There is no build step here on purpose. This pulls the prebuilt image from
-# GitHub Container Registry, which is published for both linux/amd64 and
-# linux/arm64, so it runs natively on Intel/AMD and Apple Silicon machines.
+# Paths and ports come from .env next to this file -- that is the only file
+# you should need to edit. See .env for what to put in it.
 
 services:
   ros2-gazebo-lab:
-    # Prebuilt image, pulled from GitHub Container Registry. No login needed.
-    # Swap this for `build:` below if you want to use your own Containerfile.
-    image: ghcr.io/tgodfrey0/aice2011_container:latest
-
-    # Matches the container name used everywhere else in the README, so
-    # `docker stop ros_lab_test` etc. work whichever way you started it.
-    container_name: ros_lab_test
+    # image: ghcr.io/tgodfrey0/aice2011_container:latest
+    # container_name: ros_lab_test
 
     ports:
-      # Bound to 127.0.0.1 only: the VNC server inside has no password, so do
-      # not expose this port on your network. Change the left-hand number to
-      # use a different host port, e.g. "127.0.0.1:6081:6080".
-      - "127.0.0.1:6080:6080"
+      - "127.0.0.1:${VNC_PORT:-6080}:6080"
 
     volumes:
-      # Your work lives in ./ros2_ws on your machine, not inside the container,
-      # so it survives `docker compose down`.
-      #
-      # create_host_path: true means Docker creates ./ros2_ws for you if it is
-      # missing, so you do not have to make the folder by hand first. The
-      # container's entrypoint fixes the folder's ownership on startup, so a
-      # freshly created folder is writable straight away.
-      #
-      # On SELinux hosts (Fedora, RHEL, Rocky, CentOS) add the label by
-      # uncommenting the two lines below, otherwise the container will not be
-      # allowed to write to the mounted folder:
-      #
-      #     selinux: Z
+      # Your work lives on your machine, not inside the container, so it
+      # survives `docker compose down` and `docker compose rm`.
       - type: bind
-        source: ./ros2_ws
+        source: ${ROS2_WS:-./ros2_ws}
         target: /home/student/ros2_ws
         bind:
           create_host_path: true
 
     # To build the image from the Containerfile in this folder instead of
     # pulling it, comment out `image:` above and uncomment these lines:
-    #
-    # build:
-    #   context: .
-    #   file: Containerfile
+    build:
+      context: .
+      file: Containerfile

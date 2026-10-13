@@ -1,0 +1,6 @@
+#!/bin/bash
+#
+# Applications menu entry: Build ROS 2 Workspace.
+
+exec xfce4-terminal --title="AICE2011 - Build ros2_ws" \
+    --command="/home/student/bin/run-build"

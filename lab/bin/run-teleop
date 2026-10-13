@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# Drive the robot with the keyboard. Click the terminal to give it focus first.
+#
+# No `set -u`: the ROS 2 setup script reads unset variables, and dies under it.
+source /opt/ros/jazzy/setup.bash
+if [ -f /home/student/ros2_ws/install/setup.bash ]; then
+    source /home/student/ros2_ws/install/setup.bash
+fi
+
+exec ros2 run turtlebot3_teleop teleop_keyboard
