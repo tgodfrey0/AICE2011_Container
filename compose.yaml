@@ -1,17 +1,6 @@
 # AICE2011 -- ROS 2 Jazzy + Gazebo Sim (Harmonic) + TurtleBot3 lab
 #
-# Start the lab:
-#
-#     docker compose up -d
-#
-# then open this in your browser:
-#
-#     http://127.0.0.1:6080/vnc.html?autoconnect=true
-#
-# Stop it again with:  docker compose down
-#
-# Paths and ports come from .env next to this file -- that is the only file
-# you should need to edit. See .env for what to put in it.
+# Paths and ports come from .env file (that is the only file you should edit).
 
 services:
   ros2-gazebo-lab:
@@ -25,7 +14,7 @@ services:
       # Your work lives on your machine, not inside the container, so it
       # survives `docker compose down` and `docker compose rm`.
       - type: bind
-        source: ${ROS2_WS:-./ros2_ws}
+        source: ${ROS2_WS}
         target: /home/student/ros2_ws
         bind:
           create_host_path: true
