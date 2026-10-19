@@ -34,6 +34,37 @@
          world:=/home/student/ros2_ws/src/my_package/worlds/my_world.world
 
 --------------------------------------------------------------------------------
+ SHELL HELPERS
+--------------------------------------------------------------------------------
+
+ The common commands have short names built into every terminal. They are
+ ordinary bash aliases and functions -- type them, do not copy them.
+
+ Starting and stopping:
+
+     tb3_base / tb3_empty / test_tb3    start empty world (spawns robot)
+     tb3_world                          start TurtleBot3 world
+     tb3_house                          start TurtleBot3 house (spawns robot)
+     tb3_kill                           stop Gazebo
+     tb3_kill_all                       stop Gazebo and every ROS 2 node
+     tb3_rviz2                          launch RViz2 for TurtleBot3
+
+ Building your workspace:
+
+      tb3_build           build everything, one package at a time, then
+                          source the result into this terminal
+      tb3_build_par       the same, but building in parallel
+      tb3_build_pkg NAME  build one package (NAME tab-completes)
+      tb3_rebuild_pkg NAME
+                          delete one package's build and install dirs, then
+                          build it again
+      tb3_clean           delete build/, install/ and log/
+      tb3_rebuild         tb3_clean followed by tb3_build
+
+ Tab-completion works on the package names for tb3_build_pkg and friends, and
+ on the world names for run-world.
+
+--------------------------------------------------------------------------------
  SPAWNING A ROBOT INTO THE BASE WORLD
 --------------------------------------------------------------------------------
 
@@ -220,6 +251,9 @@
 
      ros2 launch /home/student/lab/launch/tb3_launch.py world:=base_world
      ros2 launch /home/student/lab/launch/tb3_launch.py world:=house_world
+     tb3_base / tb3_house                 the same thing, shorter
+     tb3_spawn                             spawn a robot into the base world
+     tb3_kill_all                          stop Gazebo and every ROS 2 node
      ros2 run ros_gz_sim create -file /opt/ros/jazzy/share/turtlebot3_gazebo/models/turtlebot3_waffle_pi/model.sdf -x 0 -y 0 -z 0.1
      ros2 run turtlebot3_teleop teleop_keyboard
      ros2 topic list

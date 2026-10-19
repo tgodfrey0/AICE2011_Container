@@ -3,4 +3,4 @@
 # Applications menu entry: TB3 House World.
 
 exec xfce4-terminal --title="AICE2011 - TB3 House World" --hold \
-    --command="/home/student/bin/run-world house_world"
+    --command="bash -lc 'ros2 launch turtlebot3_gazebo turtlebot3_house.launch.py'"

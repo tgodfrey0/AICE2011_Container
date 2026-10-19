@@ -94,17 +94,12 @@ RUN useradd -m -s /bin/bash student \
     && mkdir -p /home/student/ros2_ws/src \
     && chown -R student:student /home/student
 
-# Configure ROS environment auto-sourcing for the student user
-RUN echo "source /opt/ros/jazzy/setup.bash" >> /home/student/.bashrc \
-    && echo "if [ -f /home/student/ros2_ws/install/setup.bash ]; then source /home/student/ros2_ws/install/setup.bash; fi" >> /home/student/.bashrc
-RUN echo "export TURTLEBOT3_MODEL=waffle_pi" >> /home/student/.bashrc
-
-# Gazebo resolves model:// URIs through GZ_SIM_RESOURCE_PATH. Both of these are
-# fixed paths inside the image, so they are set here rather than derived, which
-# would cost a subprocess on every shell start. The TurtleBot3 models have to
-# be on this path for the meshes to load, and for spawning a robot by hand to
-# work from a terminal.
-RUN echo "export GZ_SIM_RESOURCE_PATH=\$HOME/lab/models:/opt/ros/jazzy/share/turtlebot3_gazebo/models:\$GZ_SIM_RESOURCE_PATH" >> /home/student/.bashrc
+# Shell environment: ROS 2 sourcing, the TurtleBot3 model, the Gazebo
+# resource path, and the lab's aliases and helper functions all live in
+# setup/tb3_env.sh, copied in below and sourced from .bashrc. One file that
+# can be read and version-controlled, rather than a chain of `echo >>
+# .bashrc` lines.
+RUN echo 'if [ -f "$HOME/setup/tb3_env.sh" ]; then source "$HOME/setup/tb3_env.sh"; fi' >> /home/student/.bashrc
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /entrypoint.sh
@@ -131,6 +126,11 @@ RUN sed -i 's#<script type="module" crossorigin="anonymous" src="app/error-handl
 COPY lab/ /home/student/lab/
 COPY lab/bin/ /home/student/bin/
 
+# Shell environment (sourced from .bashrc, see above). setup/ is image-only
+# configuration -- unlike ros2_ws, it is not student-editable state, so it is
+# baked in rather than bind-mounted.
+COPY setup/ /home/student/setup/
+
 # Applications-menu entries. Nothing goes into ~/Desktop, so the desktop
 # background stays clean; every launcher is reached through the panel's
 # Applications menu instead.
@@ -144,7 +144,7 @@ COPY lab/applications/ /home/student/.local/share/applications/
 # container starts as that user and the bind-mounted ros2_ws arrives with the
 # host's ownership.
 RUN chmod +x /home/student/bin/* \
-    && chown -R student:student /home/student/lab /home/student/bin /home/student/.local/share \
+    && chown -R student:student /home/student/lab /home/student/bin /home/student/setup /home/student/.local/share \
     && update-desktop-database /home/student/.local/share/applications
 
 # Expose noVNC port

@@ -4,8 +4,8 @@
 
 services:
   ros2-gazebo-lab:
-    # image: ghcr.io/tgodfrey0/aice2011_container:latest
-    # container_name: ros_lab_test
+    image: ghcr.io/tgodfrey0/aice2011_container:latest
+    container_name: ros_lab_test
 
     ports:
       - "127.0.0.1:${VNC_PORT:-6080}:6080"
@@ -21,6 +21,6 @@ services:
 
     # To build the image from the Containerfile in this folder instead of
     # pulling it, comment out `image:` above and uncomment these lines:
-    build:
-      context: .
-      file: Containerfile
+    # build:
+    #   context: .
+    #   file: Containerfile
