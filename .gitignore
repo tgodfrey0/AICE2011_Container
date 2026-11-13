@@ -39,3 +39,7 @@ __pycache__/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Keep as templates, do not push new changes
+./.env
+ros2_ws/
